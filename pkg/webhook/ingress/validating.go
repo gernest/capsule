@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"regexp"
 
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -95,21 +94,21 @@ func (r *handler) ingressFromRequest(req admission.Request, decoder *admission.D
 	case "networking.k8s.io":
 		if req.Kind.Version == "v1" {
 			n := &networkingv1.Ingress{}
-			if err := decoder.Decode(req, n); err != nil {
-				return nil, err
+			if err = decoder.Decode(req, n); err != nil {
+				return
 			}
 			ingress = NetworkingV1{n}
 			break
 		}
 		n := &networkingv1beta1.Ingress{}
-		if err := decoder.Decode(req, n); err != nil {
-			return nil, err
+		if err = decoder.Decode(req, n); err != nil {
+			return
 		}
 		ingress = NetworkingV1Beta1{n}
 	case "extensions":
 		e := &extensionsv1beta1.Ingress{}
-		if err := decoder.Decode(req, e); err != nil {
-			return nil, err
+		if err = decoder.Decode(req, e); err != nil {
+			return
 		}
 		ingress = Extension{e}
 	default:
@@ -143,18 +142,14 @@ func (r *handler) validateIngress(ctx context.Context, c client.Client, object I
 		return admission.Errored(http.StatusBadRequest, NewIngressClassNotValid(*tnt.Spec.IngressClasses))
 	}
 
-	if len(tnt.Spec.IngressClasses.Allowed) > 0 {
-		valid = tnt.Spec.IngressClasses.Allowed.IsStringInList(*ingressClass)
+	if len(tnt.Spec.IngressClasses.Exact) > 0 {
+		valid = tnt.Spec.IngressClasses.ExactMatch(*ingressClass)
 	}
-
-	if len(tnt.Spec.IngressClasses.AllowedRegex) > 0 {
-		matched, _ = regexp.MatchString(tnt.Spec.IngressClasses.AllowedRegex, *ingressClass)
-	}
+	matched = tnt.Spec.IngressClasses.RegexMatch(*ingressClass)
 
 	if !valid && !matched {
 		return admission.Errored(http.StatusBadRequest, NewIngressClassForbidden(*ingressClass, *tnt.Spec.IngressClasses))
 	}
 
 	return admission.Allowed("")
-
 }

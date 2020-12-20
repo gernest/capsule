@@ -25,10 +25,10 @@ import (
 
 type ingressClassForbidden struct {
 	className string
-	spec      v1alpha1.IngressClassesSpec
+	spec      v1alpha1.AllowedListSpec
 }
 
-func NewIngressClassForbidden(className string, spec v1alpha1.IngressClassesSpec) error {
+func NewIngressClassForbidden(className string, spec v1alpha1.AllowedListSpec) error {
 	return &ingressClassForbidden{
 		className: className,
 		spec:      spec,
@@ -39,21 +39,21 @@ func (i ingressClassForbidden) Error() string {
 	return fmt.Sprintf("Ingress Class %s is forbidden for the current Tenant%s", i.className, appendError(i.spec))
 }
 
-func appendError(spec v1alpha1.IngressClassesSpec) (append string) {
-	if len(spec.Allowed) > 0 {
-		append += fmt.Sprintf(", one of the following (%s)", strings.Join(spec.Allowed, ", "))
+func appendError(spec v1alpha1.AllowedListSpec) (append string) {
+	if len(spec.Exact) > 0 {
+		append += fmt.Sprintf(", one of the following (%s)", strings.Join(spec.Exact, ", "))
 	}
-	if len(spec.AllowedRegex) > 0 {
-		append += fmt.Sprintf(", or matching the regex %s", spec.AllowedRegex)
+	if len(spec.Regex) > 0 {
+		append += fmt.Sprintf(", or matching the regex %s", spec.Regex)
 	}
 	return
 }
 
 type ingressClassNotValid struct {
-	spec v1alpha1.IngressClassesSpec
+	spec v1alpha1.AllowedListSpec
 }
 
-func NewIngressClassNotValid(spec v1alpha1.IngressClassesSpec) error {
+func NewIngressClassNotValid(spec v1alpha1.AllowedListSpec) error {
 	return &ingressClassNotValid{
 		spec: spec,
 	}
